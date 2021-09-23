@@ -1,0 +1,24 @@
+{
+  "name": "generateclassgofiber",
+  "version": "1.0.0",
+  "description": "git branch -M main  -->  git remote add origin https://github.com/lockiie/GenerateClassGOFiber.git --> git push -u origin main",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lockiie/GenerateClassGOFiber.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lockiie/GenerateClassGOFiber/issues"
+  },
+  "homepage": "https://github.com/lockiie/GenerateClassGOFiber#readme",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "fs": "*",
+    "oracledb": "^5.2.0"
+  }
+}
