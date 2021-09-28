@@ -58,3 +58,12 @@ exports.getColumns = async(tableName) => {
     const result = await conn.execute(sqlGetColumns, { TABLE_NAME: tableName }, { outFormat: oracledb.OUT_FORMAT_OBJECT })
     return result.rows;
 }
+
+// const sqlGetInfoColumn = `SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH, DATA_PRECISION, DATA_SCALE, NULLABLE
+//                        FROM USER_TAB_COLUMNS
+//                        WHERE TABLE_NAME = :TABLE_NAME`;
+
+// exports.getColumns = async(tableName) => {
+//     const result = await conn.execute(sqlGetColumns, { TABLE_NAME: tableName }, { outFormat: oracledb.OUT_FORMAT_OBJECT })
+//     return result.rows;
+// }
