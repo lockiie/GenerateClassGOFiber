@@ -4,6 +4,9 @@ exports.formatStructName = (tableName) => {
 
 function formatName(name, count) {
     let strResult = "";
+    if (name.substr(count).toLowerCase() === 'id') {
+        return (capitalize(name.substr(0, count)) + name.substr(count).toUpperCase()).replace('_', '');
+    }
     for (let i = count, n = name.length; i < n; i++) {
         let charName = name[i].toLowerCase();
         if (charName === '_') {
@@ -18,4 +21,8 @@ function formatName(name, count) {
 
 exports.formatStructAtr = (columnName) => {
     return formatName(columnName, process.env.PREFIXE_COLLUMN);
+}
+
+function capitalize(str) {
+    return str[0].toUpperCase() + str.substr(1).toLowerCase();
 }
