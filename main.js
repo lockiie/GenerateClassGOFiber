@@ -1,11 +1,15 @@
 require('dotenv').config();
 const fs = require('fs');
 
-const dirMain = __dirname + '/src';
+const dirMain = __dirname + '/prod';
 const dirModels = dirMain + '/models';
+const dirControllers = dirMain + '/controllers';
+const dirRepositories = dirMain + '/repositories';
 module.exports = {
     dirMain: dirMain,
-    dirModels: dirModels
+    dirModels: dirModels,
+    dirControllers: dirControllers,
+    dirRepositories: dirRepositories
 }
 
 const db = require('./dbConfig/db');
@@ -24,20 +28,21 @@ async function main() {
 
         //generate Model for table
         models.generateModels(tbl, columns);
+
     });
 }
 
 
 //create the default directory
 function createDirDefaults() {
-    if (!fs.existsSync(dirMain)) {
-        fs.mkdirSync(dirMain);
-    }
 
-    if (!fs.existsSync(dirModels)) {
-        fs.mkdirSync(dirModels);
+    if (fs.existsSync(dirMain)) {
+        fs.rmdirSync(dirMain, { recursive: true });
     }
-
+    fs.mkdirSync(dirMain);
+    fs.mkdirSync(dirModels);
+    fs.mkdirSync(dirControllers);
+    fs.mkdirSync(dirRepositories);
 }
 
 main()
