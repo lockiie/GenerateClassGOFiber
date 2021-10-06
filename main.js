@@ -14,6 +14,7 @@ module.exports = {
 
 const db = require('./dbConfig/db');
 const models = require('./models');
+const repositories = require('./repositories');
 
 async function main() {
     //return tables for DB
@@ -28,6 +29,7 @@ async function main() {
 
         //generate Model for table
         models.generateModels(tbl, columns);
+        repositories.generateRepositories(tbl, columns);
 
     });
 }

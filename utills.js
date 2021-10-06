@@ -26,3 +26,10 @@ exports.formatStructAtr = (columnName) => {
 function capitalize(str) {
     return str[0].toUpperCase() + str.substr(1).toLowerCase();
 }
+
+exports.formatNickName = (tableName, uppercase = false) => {
+    if (uppercase)
+        return tableName[0].toUpperCase()
+    else
+        return tableName[0].toLowerCase()
+}

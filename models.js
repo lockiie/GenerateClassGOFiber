@@ -86,7 +86,7 @@ async function generateValidators(column, infosFK, tbl) {
     const colDictionary = await db.getColDictionary(column.COLUMN_NAME);
     let validate = LessThanEqual()
     const isValidators = await isAutoIncrementAndPK();
-    if (isValidators || column.DATA_DEFAULT !== 'null') {
+    if (isValidators || column.DATA_DEFAULT != null) {
         validate = ""
     }
     //console.log(column.DATA_DEFAULT)
@@ -112,7 +112,7 @@ function getType(column) {
         case "VARCHAR2":
         case "CHAR":
             if (column.NULLABLE === 'Y')
-                return "sql.NullString"
+                return "string" //para oracle string nula e string vazia é a mesma coisa -->sql.NullString
             return "string";
         case "DATE":
             if (column.NULLABLE === 'Y' || (column.DATA_DEFAULT != null && column.NULLABLE === 'N'))

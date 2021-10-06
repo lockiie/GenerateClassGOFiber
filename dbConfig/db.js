@@ -77,7 +77,8 @@ GROUP BY COLUMN_NAME
 
 const sqlGetColumns = `SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH, DATA_PRECISION, DATA_SCALE, NULLABLE, DATA_DEFAULT
                        FROM USER_TAB_COLUMNS
-                       WHERE TABLE_NAME = :TABLE_NAME`;
+                       WHERE TABLE_NAME = :TABLE_NAME
+                       ORDER BY COLUMN_NAME`;
 
 exports.getColumns = async(tableName) => {
     const result = await conn.execute(sqlGetColumns, { TABLE_NAME: tableName }, { outFormat: oracledb.OUT_FORMAT_OBJECT })
