@@ -7,27 +7,29 @@ const repo = 'Repo';
 
 
 exports.generateRepositories = async(tbl, columns) => {
-    const pk = await db.getInfoColumnOfDatabaseDictionaryPK(tbl.TABLE_NAME);
-    console.log(generateDelete(tbl.TABLE_NAME, pk[0]))
-        // let code = `package repositories \n import ( \n "context" \n "database/sql" \n "errors" \n "fmt" \n "strconv" ) \n\n`;
-
-    // code += `type ${repo}${utlls.formatStructName(tbl.TABLE_NAME)} struct { \n`;
-    // code += `tx   *sql.Tx \n ctx  *context.Context \n conn *sql.Conn \n  } \n \n`;
-    // code += `func New${repo}${utlls.formatStructName(tbl.TABLE_NAME)} (tx *sql.Tx, ctx *context.Context, conn *sql.Conn) *${repo}${utlls.formatStructName(tbl.TABLE_NAME)} { \n`;
-    // code += ` return &${repo}${utlls.formatStructName(tbl.TABLE_NAME)}{tx, ctx, conn} \n } \n \n // \n`;
+    let code = `package repositories \n import ( \n "context" \n "database/sql" \n "eco/src/functions" \n "eco/src/models" \n
+    \n "eco/src/types" \n "errors" \n "strconv" \n ) \n`;
     // const pk = await db.getInfoColumnOfDatabaseDictionaryPK(tbl.TABLE_NAME);
-    // code += generateInsert(tbl.TABLE_NAME, columns, pk[0]);
-    // code += `\n`;
-    // code += generateUpdate(tbl.TABLE_NAME, columns, pk[0]);
-    // code += `\n`;
-    // code += generateDelete(tbl.TABLE_NAME, pk[0]);
-    // code += `\n`;
-    // code += generateQuery(tbl.TABLE_NAME, columns, pk[0]);
-    // code += `\n`;
-    // code += generateQueryByID(tbl.TABLE_NAME, columns, pk[0]);
-    // const structName = utlls.formatStructName(tbl.TABLE_NAME)
-    // const fileModel = dirControllers + `/${structName}.go`
-    // fs.writeFileSync(fileModel, code, { encoding: 'utf8' })
+
+    // let code = `package repositories \n import ( \n "context" \n "database/sql" \n "errors" \n "fmt" \n "strconv" ) \n\n`;
+
+    code += `type ${repo}${utlls.formatStructName(tbl.TABLE_NAME)} struct { \n`;
+    code += `tx   *sql.Tx \n ctx  *context.Context \n conn *sql.Conn \n  } \n \n`;
+    code += `func New${repo}${utlls.formatStructName(tbl.TABLE_NAME)} (tx *sql.Tx, ctx *context.Context, conn *sql.Conn) *${repo}${utlls.formatStructName(tbl.TABLE_NAME)} { \n`;
+    code += ` return &${repo}${utlls.formatStructName(tbl.TABLE_NAME)}{tx, ctx, conn} \n } \n \n // \n`;
+    const pk = await db.getInfoColumnOfDatabaseDictionaryPK(tbl.TABLE_NAME);
+    code += generateInsert(tbl.TABLE_NAME, columns, pk[0]);
+    code += `\n`;
+    code += generateUpdate(tbl.TABLE_NAME, columns, pk[0]);
+    code += `\n`;
+    code += generateDelete(tbl.TABLE_NAME, pk[0]);
+    code += `\n`;
+    code += generateQuery(tbl.TABLE_NAME, columns, pk[0]);
+    code += `\n`;
+    code += generateQueryByID(tbl.TABLE_NAME, columns, pk[0]);
+    const structName = utlls.formatStructName(tbl.TABLE_NAME)
+    const fileModel = dirControllers + `/${structName}.go`
+    fs.writeFileSync(fileModel, code, { encoding: 'utf8' })
 }
 
 function generateInsert(tblName, columns, pk) {
@@ -75,7 +77,6 @@ function generateInsert(tblName, columns, pk) {
         }
         lengthColumn += columns[i].COLUMN_NAME.length;
     }
-    console.log(valuesFunc)
     funcInsert += '`' + sqlMetadate + '\n' + sqlValues + '`, \n ' + valuesFunc;
     funcInsert += `) \n return err \n }`
     return funcInsert;
@@ -94,7 +95,7 @@ function lpad(count) {
 function generateUpdate(tblName, columns, pk) {
     let code = `func (db ${repo}${utlls.formatStructName(tblName)} ) Update(${utlls.formatNickName(tblName)} *models.${utlls.formatStructName(tblName)}) error { \n`;
     code += `var res sql.Result \n var err error \n `;
-    code += `res, err := db.tx.ExecContext( \n *db.ctx, \n `;
+    code += `res, err = db.tx.ExecContext( \n *db.ctx, \n `;
     let sqlUpdate = `UPDATE ${tblName} SET `;
 
     let countValues = 0;
@@ -143,7 +144,7 @@ function generateUpdate(tblName, columns, pk) {
 
 function generateDelete(tblName, pk) {
     let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Delete(${utlls.formatStructAtr(pk.COLUMN_NAME)} uint32) error { \n`;
-    code += `_, err := db.conn.ExecContext( \n`;
+    code += `res, err := db.conn.ExecContext( \n`;
     code += `*db.ctx,\n`;
     let sqlDelete = `DELETE FROM ${tblName} \n`
     sqlDelete += `WHERE ${pk.COLUMN_NAME} = :0`;
@@ -172,13 +173,93 @@ function getColumn(columns) {
 
 }
 
-function generateQuery(tblName, columns, pk) {
-    let code = ``;
-    return `SELECT ${getColumn(columns)}\nFROM ${tblName}`;
+function getColumnValue(columns) {
+    sqlResult = "";
+    let lengthColumn = 0;
+    for (let i = 0, n = columns.length; i < n; i++) {
+        if (lengthColumn > 38) {
+            sqlResult += '\n' + lpad(8);
+            lengthColumn = 0;
+        }
+        sqlResult += `${utlls.formatNickName(tblName)}.${utlls.formatStructAtr(columns[i].COLUMN_NAME)}`;
+        if (i + 1 !== n)
+            sqlResult += ', ';
+        lengthColumn += columns[i].COLUMN_NAME.length;
+    }
+    return sqlResult;
+
+}
+
+function getColumnValueGolang(columns, varStr, tblName) {
+    sqlResult = "";
+    let lengthColumn = 0;
+
+    for (let i = 0, n = columns.length; i < n; i++) {
+        if (lengthColumn > 38) {
+            sqlResult += '\n' + lpad(8);
+            lengthColumn = 0;
+        }
+        sqlResult += `&${varStr}.${utlls.formatStructAtr(columns[i].COLUMN_NAME)}`;
+        if (i + 1 !== n)
+            sqlResult += ', ';
+
+        lengthColumn += columns[i].COLUMN_NAME.length;
+    }
+    return sqlResult;
 
 }
 
 function generateQueryByID(tblName, columns, pk) {
-    let code = ``;
-    return `SELECT ${getColumn(columns)}\nFROM ${tblName}\nWHERE ${pk.COLUMN_NAME} = :0`;
+    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) QueryByID(code string) (*models.${utlls.formatStructName(tblName)}, error) { \n`;
+    code += `var args []interface{} \n \n `;
+    code += `args = append(args, code) \n`;
+    code += `row:= db.conn.QueryRowContext( \n`;
+    code += `*db.ctx, \n`;
+
+    const sql = `SELECT ${getColumn(columns)}\nFROM ${tblName}\nWHERE ${pk.COLUMN_NAME} = :0`;
+    code += "`" + sql + "`";
+    code += `, args..., \n ) \n`;
+    const varStr = utlls.formatStructName(tblName).toLowerCase().substr(0, tblName.length - 4);
+    code += `var ${varStr} models.${utlls.formatStructName(tblName)} \n \n`;
+    code += `err := `;
+
+    code += `row.Scan(`;
+
+    code += getColumnValueGolang(columns, varStr, tblName);
+
+    code += `) \n`;
+    code += `${utlls.checkError()}  \n`;
+
+    //code += `${utlls.formatStructName(tblName).toLowerCase()} = append(${utlls.formatStructName(tblName).toLowerCase()}, ${varStr})`;
+
+    code += ` return &${varStr}, err \n }`;
+    return code;
+}
+
+function generateQuery(tblName, columns, pk) {
+    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Query(pag Pagination) (*[]models.${utlls.formatStructName(tblName)}, error) { \n`;
+    code += `var args []interface{} \n \n `;
+    code += `strpag, offSet, Limit := pag.pagBind() \n args = append(args, offSet, Limit) \n`;
+    code += `rows, err := db.conn.QueryContext( \n`;
+    code += `*db.ctx, \n`;
+
+    const sql = `SELECT ${getColumn(columns)}\nFROM ${tblName}\nWHERE ${pk.COLUMN_NAME} = :0`;
+    code += "`" + sql + "`";
+    code += `, args..., \n ) \n`;
+    code += `${utlls.checkError()} \n defer rows.Close() \n`;
+    code += `var ${utlls.formatStructName(tblName).toLowerCase()} []models.${utlls.formatStructName(tblName)} \n \n`;
+    code += `for rows.Next() { \n `;
+
+    const varStr = utlls.formatStructName(tblName).toLowerCase().substr(0, tblName.length - 4);
+    code += `var ${varStr} models.${utlls.formatStructName(tblName)} \n`;
+    code += `rows.Scan(`;
+
+    code += getColumnValueGolang(columns, varStr, tblName) + " + strpag";
+
+    code += `) \n`;
+
+    code += `${utlls.formatStructName(tblName).toLowerCase()} = append(${utlls.formatStructName(tblName).toLowerCase()}, ${varStr})`;
+
+    code += `\n } \n  return &${utlls.formatStructName(tblName).toLowerCase()}, err \n }`;
+    return code;
 }

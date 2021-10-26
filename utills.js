@@ -33,3 +33,8 @@ exports.formatNickName = (tableName, uppercase = false) => {
     else
         return tableName[0].toLowerCase()
 }
+
+
+exports.checkError = () => {
+    return `if err != nil { \n  return nil, err  \n } \n`;
+}
