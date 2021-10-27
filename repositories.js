@@ -143,7 +143,7 @@ function generateUpdate(tblName, columns, pk) {
 }
 
 function generateDelete(tblName, pk) {
-    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Delete(${utlls.formatStructAtr(pk.COLUMN_NAME)} uint32) error { \n`;
+    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Delete(${utlls.formatStructAtr(pk.COLUMN_NAME)}, comID uint32) error { \n`;
     code += `res, err := db.conn.ExecContext( \n`;
     code += `*db.ctx,\n`;
     let sqlDelete = `DELETE FROM ${tblName} \n`
