@@ -7,7 +7,8 @@ const db = require('./dbConfig/db');
 exports.generateModels = async(tbl, columns) => {
     const structName = utlls.formatStructName(tbl.TABLE_NAME)
 
-    let modelClass = `package models \n\n import ( \n "database/sql" \n ) \n\n`;
+    let modelClass = `package models \n\n import ( \n "database/sql"
+    t "eco/src/types" \n ) \n\n`;
 
     modelClass += `type ${structName} struct { \n`;
 
@@ -21,8 +22,14 @@ exports.generateModels = async(tbl, columns) => {
 
     //adionar a validação
     const firstLetter = structName[0].toLowerCase();
-    modelClass += `func (${firstLetter} *${structName}) Validators() error { \n err := validate.Struct(${firstLetter}) \n return err \n }`;
-    const fileModel = dirModels + `/${structName}.go`
+    modelClass += `func (${firstLetter} *${structName}) Validators() error { \n 	err := validate.Struct(b)
+        if err != nil {
+            return translateError(err)
+        }
+        return nil
+     }`;
+    const fileModel = dirModels + `/${structName.toLowerCase()}.go`
+
     fs.writeFileSync(fileModel, modelClass, { encoding: 'utf8' })
 }
 
@@ -75,7 +82,8 @@ async function generateValidators(column, infosFK, tbl) {
                 const stuctName = utlls.formatStructName(infosFK[0].TABLE_ORIGIN)
                 return `${stuctName[0].toLowerCase()}${stuctName.substr(1)}_id`
             }
-            return colDictionary.CDY_JSON;
+            if (colDictionary != undefined)
+                return colDictionary.CDY_JSON;
         }
 
         if (column.NULLABLE === 'N' && infosFK.length === 0) {
@@ -174,7 +182,7 @@ function typeNumber(column) {
     }
     if (column.DATA_PRECISION + column.DATA_SCALE < 7) {
         if (column.NULLABLE === 'Y')
-            return "sql.NullFloat32"
+            return "sql.NullFloat64"
         return "float32";
     }
     if (column.DATA_PRECISION + column.DATA_SCALE < 14) {

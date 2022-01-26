@@ -7,8 +7,14 @@ const repo = 'Repo';
 
 
 exports.generateRepositories = async(tbl, columns) => {
-    let code = `package repositories \n import ( \n "context" \n "database/sql" \n "eco/src/functions" \n "eco/src/models" \n
-    \n "eco/src/types" \n "errors" \n "strconv" \n ) \n`;
+    let code = `package repositories
+    import (
+        "context"
+        "database/sql"
+        f "eco/src/functions"
+        "eco/src/models"
+    )
+      \n ) \n`;
     // const pk = await db.getInfoColumnOfDatabaseDictionaryPK(tbl.TABLE_NAME);
 
     // let code = `package repositories \n import ( \n "context" \n "database/sql" \n "errors" \n "fmt" \n "strconv" ) \n\n`;
@@ -28,7 +34,7 @@ exports.generateRepositories = async(tbl, columns) => {
     code += `\n`;
     code += generateQueryByID(tbl.TABLE_NAME, columns, pk[0]);
     const structName = utlls.formatStructName(tbl.TABLE_NAME)
-    const fileModel = dirControllers + `/${structName}.go`
+    const fileModel = dirRepositories + `/${structName}.go`
     fs.writeFileSync(fileModel, code, { encoding: 'utf8' })
 }
 
@@ -78,7 +84,12 @@ function generateInsert(tblName, columns, pk) {
         lengthColumn += columns[i].COLUMN_NAME.length;
     }
     funcInsert += '`' + sqlMetadate + '\n' + sqlValues + '`, \n ' + valuesFunc;
-    funcInsert += `) \n return err \n }`
+    funcInsert += `) \n if err != nil {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	} \n 
+    return err
+}`
     return funcInsert;
 }
 
@@ -136,8 +147,22 @@ function generateUpdate(tblName, columns, pk) {
         lengthColumn += columns[i].COLUMN_NAME.length;
     }
     sqlUpdate = '`' + sqlUpdate + '`';
-    code += `${sqlUpdate}, \n ${valuesFunc} \n ) \n \n if err != nil { \n return err \n } \n affected, err := res.RowsAffected() \n`;
-    code += `if affected == 0 { \n return errors.New(types.DBMsgNotUpdate) \n } \n return err \n }`;
+    code += `${sqlUpdate}, \n ${valuesFunc} \n ) \n \n 	if err != nil {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	}
+
+	affected, err := res.RowsAffected()
+
+	if err != nil {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	}
+	if affected == 0 {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	}
+	return nil }`;
     return code;
 
 }
@@ -150,8 +175,23 @@ function generateDelete(tblName, pk) {
     sqlDelete += `WHERE ${pk.COLUMN_NAME} = :0`;
     code += " `" + sqlDelete + "`,\n";
     code += `${utlls.formatStructAtr(pk.COLUMN_NAME)}, \n ) \n`;
-    code += `if err != nil { \n return err \n } \n affected, err := res.RowsAffected() \n if affected == 0 { \n `;
-    code += `return errors.New(types.DBMsgNotUpdate) \n } \n return err \n }`;
+    code += `	if err != nil {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	}
+	affected, err := res.RowsAffected()
+
+	if err != nil {
+		errorDB := treatErrorDB(err)
+		return &errorDB
+	}
+
+	if affected == 0 {
+		errorDB := treatErrorDBNotFound()
+		return &errorDB
+	}
+	return nil
+}`;
     return code;
 
 }
@@ -228,7 +268,10 @@ function generateQueryByID(tblName, columns, pk) {
     code += getColumnValueGolang(columns, varStr, tblName);
 
     code += `) \n`;
-    code += `${utlls.checkError()}  \n`;
+    code += `	if err != nil {
+		errorDB := treatErrorDB(err)
+		return brand, &errorDB
+	}  \n`;
 
     //code += `${utlls.formatStructName(tblName).toLowerCase()} = append(${utlls.formatStructName(tblName).toLowerCase()}, ${varStr})`;
 
@@ -237,29 +280,30 @@ function generateQueryByID(tblName, columns, pk) {
 }
 
 function generateQuery(tblName, columns, pk) {
-    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Query(pag Pagination) (*[]models.${utlls.formatStructName(tblName)}, error) { \n`;
-    code += `var args []interface{} \n \n `;
-    code += `strpag, offSet, Limit := pag.pagBind() \n args = append(args, offSet, Limit) \n`;
+    let code = `func (db ${repo}${utlls.formatStructName(tblName)}) Query(q *f.Query) error { \n`;
+    code += `var ${utlls.formatStructAtr(tblName)} models.${utlls.formatStructName(tblName)}\n \n `;
+    code += `q.Model = &${utlls.formatStructAtr(tblName)} \n`;
+    code += `q.IsComID = true \n`;
+    code += "q.SqlQuery = `SELECT " + getColumn(columns) + ", COUNT(*) OVER() FROM " + tblName + "` \n";
+    code += `q.IsPagination = true \n`;
+    code += `q.OrderByDefault = "${pk.COLUMN_NAME}" \n`;
+    code += `q.IsComID = true \n`;
+    code += `//q.NickName = "B" \n`;
+    code += `q.Mount() \n`;
     code += `rows, err := db.conn.QueryContext( \n`;
-    code += `*db.ctx, \n`;
-
-    const sql = `SELECT ${getColumn(columns)}\nFROM ${tblName}\nWHERE ${pk.COLUMN_NAME} = :0`;
-    code += "`" + sql + "`";
-    code += `, args..., \n ) \n`;
-    code += `${utlls.checkError()} \n defer rows.Close() \n`;
-    code += `var ${utlls.formatStructName(tblName).toLowerCase()} []models.${utlls.formatStructName(tblName)} \n \n`;
-    code += `for rows.Next() { \n `;
-
+    code += `q.SqlResult, q.Args..., \n`;
+    code += `) \n`;
+    code += `if err != nil { \n`;
+    code += `errorDB := treatErrorDB(err) \n`;
+    code += `return &errorDB \n`;
+    code += `} \n`;
+    code += `defer rows.Close() \n \n`;
+    code += `for rows.Next() { \n`;
     const varStr = utlls.formatStructName(tblName).toLowerCase().substr(0, tblName.length - 4);
     code += `var ${varStr} models.${utlls.formatStructName(tblName)} \n`;
     code += `rows.Scan(`;
-
-    code += getColumnValueGolang(columns, varStr, tblName) + " + strpag";
-
-    code += `) \n`;
-
-    code += `${utlls.formatStructName(tblName).toLowerCase()} = append(${utlls.formatStructName(tblName).toLowerCase()}, ${varStr})`;
-
-    code += `\n } \n  return &${utlls.formatStructName(tblName).toLowerCase()}, err \n }`;
+    code += getColumnValueGolang(columns, varStr, tblName) + ",&q.Response.Total) \n";
+    code += `q.Response.ResultSet = append(q.Response.ResultSet, ${utlls.formatStructName(tblName)}) \n } \n`;
+    code += `q.Count() \n return nil \n } \n`;
     return code;
 }
